@@ -1,0 +1,13 @@
+# Godot が自動生成するもの
+.godot/
+# 書き出し結果
+build/
+# Android の Gradle テンプレート（再インストール可能）
+android/
+# 鍵・パスワード類は絶対に入れない
+export_credentials.cfg
+*.keystore
+*.jks
+# OS のゴミ
+Thumbs.db
+.DS_Store
