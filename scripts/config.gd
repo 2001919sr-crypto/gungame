@@ -5,6 +5,7 @@ extends Node
 const SCREEN_W := 540
 const SCREEN_H := 960
 const SCROLL_SPEED := 220.0          # 地面が流れる速さ。ゲートとアイテムもこの速さで流れてくる
+const SPEED_STEPS := [1.0, 1.5, 2.0]  # 倍速ボタンで切り替わる速さ
 
 
 ## ゲームの世界の大きさ。幅はいつも 540（画面が横に広くても中央に寄せて表示する）。高さは端末に合わせて伸びる

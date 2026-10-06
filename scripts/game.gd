@@ -28,6 +28,9 @@ var _over_time := 0.0
 @onready var hp_label: Label = $UI/HpLabel
 @onready var stats_label: Label = $UI/StatsLabel
 @onready var reward_panel: Control = $UI/RewardPanel
+@onready var pause_button: Button = $UI/PauseButton
+@onready var speed_label: Label = $UI/SpeedLabel
+@onready var pause_menu: Control = $UI/PauseMenu
 @onready var game_over_panel: Control = $UI/GameOver
 @onready var game_over_label: Label = $UI/GameOver/Label
 
@@ -44,6 +47,12 @@ func _ready() -> void:
 	spawner.item_picked.connect(_on_item_picked)
 	spawner.gate_passed.connect(_on_gate_passed)
 	reward_panel.chosen.connect(_on_gun_chosen)
+	pause_button.pressed.connect(_pause)
+	pause_menu.resume_pressed.connect(_resume)
+	pause_menu.retry_pressed.connect(_retry)
+	pause_menu.quit_pressed.connect(_quit)
+	pause_menu.speed_changed.connect(func(_s: float) -> void: _update_speed_label())
+	_update_speed_label()
 	game_over_panel.hide()
 	_update_hud()
 	gun_label.text = "GUN: -"
@@ -83,6 +92,43 @@ func _on_gun_chosen(id: String) -> void:
 	state = State.PLAYING
 	spawner.active = true
 	_update_hud()
+	if "--openpause" in OS.get_cmdline_user_args():   # テスト用: 一時停止メニューを開いた状態にする
+		_pause.call_deferred()
+
+
+# ---- 一時停止メニュー ----
+
+func _pause() -> void:
+	if state != State.PLAYING or get_tree().paused:
+		return
+	get_tree().paused = true
+	pause_menu.open()
+
+
+func _resume() -> void:
+	pause_menu.hide()
+	get_tree().paused = false
+
+
+func _retry() -> void:
+	get_tree().paused = false
+	get_tree().reload_current_scene()   # 倍速の設定はそのまま引き継ぐ
+
+
+## 終了。今はアプリを閉じる。Step 4 でタイトル画面ができたら「タイトルへ戻る」に変える
+func _quit() -> void:
+	get_tree().quit()
+
+
+func _update_speed_label() -> void:
+	var s := Engine.time_scale
+	speed_label.text = "" if is_equal_approx(s, 1.0) else "×%s" % pause_menu._speed_text(s)
+
+
+## スマホで別のアプリに切り替えた時などは自動で一時停止する
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
+		_pause()
 
 
 # ---- アイテムとゲート ----
@@ -167,6 +213,7 @@ func _on_player_died() -> void:
 	game_over_label.text = "GAME OVER\n\n倒した数  %d\nコイン  %d\n生存時間  %.1f 秒\n\nタップでもう一度" % [
 		kills, coins, spawner.elapsed]
 	game_over_panel.show()
+	pause_button.hide()
 	var stats := []
 	for w in player.weapons:
 		stats.append(w.summary())
@@ -175,6 +222,13 @@ func _on_player_died() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# PC では Esc か P キーでも一時停止 / 再開できる
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_ESCAPE, KEY_P]:
+		if pause_menu.visible:
+			_resume()
+		else:
+			_pause()
+		return
 	if state == State.GAME_OVER:
 		var tapped: bool = event is InputEventScreenTouch and event.pressed
 		var key: bool = event is InputEventKey and event.pressed and not event.echo

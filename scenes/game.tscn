@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/background.gd" id="2_background"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3_player"]
 [ext_resource type="Script" path="res://scripts/spawner.gd" id="4_spawner"]
 [ext_resource type="Script" path="res://scripts/reward_panel.gd" id="5_reward"]
+[ext_resource type="Script" path="res://scripts/pause_menu.gd" id="6_pause"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
@@ -82,6 +83,35 @@ theme_override_colors/font_color = Color(0.25, 0.25, 0.32, 1)
 theme_override_font_sizes/font_size = 13
 text = ""
 
+[node name="PauseButton" type="Button" parent="UI"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -70.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = 70.0
+grow_horizontal = 0
+focus_mode = 0
+theme_override_font_sizes/font_size = 26
+text = "II"
+
+[node name="SpeedLabel" type="Label" parent="UI"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -150.0
+offset_top = 26.0
+offset_right = -78.0
+offset_bottom = 56.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.2, 0.45, 0.95, 1)
+theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 2
+text = ""
+
 [node name="RewardPanel" type="Control" parent="UI"]
 layout_mode = 3
 anchors_preset = 15
@@ -90,6 +120,15 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("5_reward")
+
+[node name="PauseMenu" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("6_pause")
 
 [node name="GameOver" type="ColorRect" parent="UI"]
 anchors_preset = 15
