@@ -36,6 +36,7 @@ func _ready() -> void:
 	var shape := CircleShape2D.new()
 	shape.radius = radius
 	$CollisionShape2D.shape = shape
+	add_to_group("enemies")
 
 
 func _process(delta: float) -> void:

@@ -2,13 +2,12 @@ extends Node2D
 ## 流れる背景。横線が下に流れて「前に進んでいる」感じを出す。
 ## 真ん中の薄い縦線は、左右タップの境目の目印。
 
-const SCROLL_SPEED := 260.0
 const GAP := 90.0
 var _offset := 0.0
 
 
 func _process(delta: float) -> void:
-	_offset = fmod(_offset + SCROLL_SPEED * delta, GAP)
+	_offset = fmod(_offset + Config.SCROLL_SPEED * delta, GAP)
 	queue_redraw()
 
 

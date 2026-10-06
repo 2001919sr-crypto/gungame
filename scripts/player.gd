@@ -53,6 +53,13 @@ func _on_hurtbox_area_entered(area: Area2D) -> void:
 		area.pick()   # アイテム
 
 
+func heal(amount: int) -> void:
+	if not alive:
+		return
+	hp = mini(hp + amount, max_hp)
+	hp_changed.emit(hp, max_hp)
+
+
 func take_damage(amount: int) -> void:
 	if not alive or _invincible > 0.0:
 		return

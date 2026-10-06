@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/item.gd" id="1_item"]
+
+[sub_resource type="CapsuleShape2D" id="CircleShape2D_item"]
+radius = 20.0
+height = 84.0
+
+[node name="Item" type="Area2D"]
+collision_layer = 16
+collision_mask = 0
+monitoring = false
+script = ExtResource("1_item")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+rotation = 1.5708
+shape = SubResource("CircleShape2D_item")
