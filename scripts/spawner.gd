@@ -8,7 +8,7 @@ const ENEMY_SCENE := preload("res://scenes/enemy.tscn")
 
 var enemy_container: Node = null
 var enemy_bullet_container: Node = null
-var active := true
+var active := false   # 銃を選ぶまでは出さない（game.gd が true にする）
 var elapsed := 0.0
 var rng := RandomNumberGenerator.new()
 var _cooldown := 0.6
@@ -49,9 +49,10 @@ func _pick(weights: Dictionary) -> String:
 
 
 func _spawn(type_id: String) -> void:
-	var view_w := get_viewport().get_visible_rect().size.x
+	var view_w := float(Config.SCREEN_W)
 	var r: float = Config.ENEMIES[type_id]["radius"]
-	var x := rng.randf_range(Config.SPAWN_MARGIN_X, view_w - Config.SPAWN_MARGIN_X)
+	var lane: float = Config.LANES[rng.randi_range(0, Config.LANES.size() - 1)]
+	var x := view_w * lane
 	var e := ENEMY_SCENE.instantiate() as Enemy
 	e.setup(type_id, Vector2(x, -r - 10.0))
 	e.bullet_container = enemy_bullet_container

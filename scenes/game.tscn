@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/background.gd" id="2_background"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="3_player"]
 [ext_resource type="Script" path="res://scripts/spawner.gd" id="4_spawner"]
+[ext_resource type="Script" path="res://scripts/reward_panel.gd" id="5_reward"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
@@ -15,6 +16,8 @@ script = ExtResource("2_background")
 script = ExtResource("4_spawner")
 
 [node name="Enemies" type="Node2D" parent="."]
+
+[node name="Items" type="Node2D" parent="."]
 
 [node name="Bullets" type="Node2D" parent="."]
 
@@ -49,6 +52,15 @@ offset_bottom = 92.0
 theme_override_colors/font_color = Color(0.85, 0.2, 0.25, 1)
 theme_override_font_sizes/font_size = 20
 text = "HP"
+
+[node name="RewardPanel" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("5_reward")
 
 [node name="GameOver" type="ColorRect" parent="UI"]
 anchors_preset = 15

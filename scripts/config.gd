@@ -5,6 +5,11 @@ extends Node
 const SCREEN_W := 540
 const SCREEN_H := 960
 
+
+## ゲームの世界の大きさ。幅はいつも 540（画面が横に広くても中央に寄せて表示する）。高さは端末に合わせて伸びる
+func world_size(node: CanvasItem) -> Vector2:
+	return Vector2(SCREEN_W, node.get_viewport_rect().size.y)
+
 # ---- プレイヤー ----
 const PLAYER_SPEED := 460.0          # 横移動の速さ（px/秒）
 const PLAYER_HALF_W := 26.0          # 画面端で止まるための半分の幅
@@ -26,6 +31,10 @@ const MAX_BULLETS := 200             # 画面内の弾の上限（スマホの�
 const GUNS := {
 	"handgun": {
 		"label": "HANDGUN",
+		"name": "ハンドガン",
+		"desc": "弾 1 発
+連射 ふつう
+素直で扱いやすい",
 		"barrels": [0.0],
 		"colors": [Color(1.0, 0.85, 0.2)],
 		"count": 1,
@@ -40,6 +49,10 @@ const GUNS := {
 	},
 	"shotgun": {
 		"label": "SHOTGUN",
+		"name": "ショットガン",
+		"desc": "扇状に 3 発
+威力 高い
+届く距離が短い",
 		"barrels": [0.0],
 		"colors": [Color(1.0, 0.45, 0.35)],
 		"count": 3,
@@ -54,6 +67,10 @@ const GUNS := {
 	},
 	"dual": {
 		"label": "DUAL",
+		"name": "二丁拳銃",
+		"desc": "左右に 1 丁ずつ
+左右のゲートで
+別々に育つ",
 		"barrels": [-16.0, 16.0],
 		"colors": [Color(0.3, 0.85, 0.9), Color(0.75, 0.45, 0.95)],
 		"count": 1,
@@ -101,4 +118,9 @@ const WAVES := [
 	{"until": 35.0, "interval": 0.8, "weights": {"walker": 3, "tank": 1}},
 	{"until": 99999.0, "interval": 0.65, "weights": {"walker": 3, "tank": 1, "shooter": 1}},
 ]
-const SPAWN_MARGIN_X := 40.0          # 画面の端から何 px 内側に出すか
+# 敵が出てくる列（画面の幅に対する割合）。左・中央・右の 3 列
+const LANES := [1.0 / 6.0, 0.5, 5.0 / 6.0]
+
+# ---- 最初のアイテム（銃を決める箱） ----
+const GIFT_FALL_SPEED := 220.0
+const GIFT_RADIUS := 26.0

@@ -9,7 +9,7 @@ signal died
 
 const BULLET_SCENE := preload("res://scenes/bullet.tscn")
 
-var gun_id := "handgun"
+var gun_id := ""   # 最初は銃なし。最初のアイテムで決まり、その後は変えられない
 var weapons: Array[WeaponState] = []
 var bullet_container: Node = null   # 弾を入れる場所（game.gd が渡す）
 var max_hp: int = Config.PLAYER_MAX_HP
@@ -20,14 +20,13 @@ var _invincible := 0.0
 
 func _ready() -> void:
 	add_to_group("player")
-	set_gun(gun_id)
 	var shape := CircleShape2D.new()
 	shape.radius = Config.PLAYER_HIT_RADIUS
 	$Hurtbox/CollisionShape2D.shape = shape
 	$Hurtbox.area_entered.connect(_on_hurtbox_area_entered)
 
 
-## 銃を持ち替える（タイトル画面ができるまでは 1/2/3 キーで切り替え）
+## 銃を決める（ランの最初に 1 回だけ呼ばれる）
 func set_gun(id: String) -> void:
 	gun_id = id
 	weapons.clear()
@@ -50,6 +49,8 @@ func _on_hurtbox_area_entered(area: Area2D) -> void:
 		var dmg: int = area.damage
 		area.queue_free()
 		take_damage(dmg)
+	elif area.has_method("pick"):
+		area.pick()   # アイテム
 
 
 func take_damage(amount: int) -> void:
@@ -82,7 +83,7 @@ func _process(delta: float) -> void:
 
 func _move(delta: float) -> void:
 	var dir := GameInput.get_move_dir()
-	var view := get_viewport_rect().size
+	var view := Config.world_size(self)
 	position.x += dir * Config.PLAYER_SPEED * delta
 	position.x = clampf(position.x, Config.PLAYER_HALF_W, view.x - Config.PLAYER_HALF_W)
 	position.y = view.y - Config.PLAYER_BOTTOM_MARGIN

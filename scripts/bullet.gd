@@ -47,7 +47,7 @@ func _physics_process(delta: float) -> void:
 	if range_px > 0.0 and _traveled >= range_px:
 		queue_free()
 		return
-	var view := get_viewport_rect().size
+	var view := Config.world_size(self)
 	var m := 40.0
 	if position.y < -m or position.y > view.y + m or position.x < -m or position.x > view.x + m:
 		queue_free()

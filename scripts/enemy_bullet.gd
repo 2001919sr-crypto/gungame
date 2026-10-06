@@ -14,7 +14,7 @@ func setup(pos: Vector2, vel: Vector2, dmg: int) -> void:
 
 func _physics_process(delta: float) -> void:
 	position += velocity * delta
-	var view := get_viewport_rect().size
+	var view := Config.world_size(self)
 	var m := 30.0
 	if position.y < -m or position.y > view.y + m or position.x < -m or position.x > view.x + m:
 		queue_free()

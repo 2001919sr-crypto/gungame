@@ -7,6 +7,11 @@ extends Node
 var _touch_sides: Dictionary = {}
 
 
+func _ready() -> void:
+	# 一時停止中（銃を選ぶ画面など）も指の離しを見逃さないように常に動かす
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed:
