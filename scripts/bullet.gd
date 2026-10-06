@@ -1,7 +1,7 @@
 class_name Bullet
 extends Area2D
 ## 弾。まっすぐ飛び、画面外か射程の限界で消える。
-## 当たり判定は Step 2 で敵側とつなぐ。貫通・跳弾は Step 3。
+## 敵に当たるとダメージを与えて消える。貫通（pierce）が残っていれば突き抜ける。跳弾は Step 3。
 
 var velocity := Vector2.ZERO
 var damage := 10
@@ -10,6 +10,11 @@ var bounce := 0
 var range_px := 0.0
 var color := Color.WHITE
 var _traveled := 0.0
+var _spent := false
+
+
+func _ready() -> void:
+	area_entered.connect(_on_area_entered)
 
 
 func setup(wpn: WeaponState, start_pos: Vector2, angle_deg: float) -> void:
@@ -21,6 +26,18 @@ func setup(wpn: WeaponState, start_pos: Vector2, angle_deg: float) -> void:
 	range_px = wpn.range_px
 	color = wpn.color
 	scale = Vector2.ONE * wpn.size
+
+
+func _on_area_entered(area: Area2D) -> void:
+	if _spent:
+		return
+	if area is Enemy and not area.dead:
+		area.take_damage(damage)
+		if pierce > 0:
+			pierce -= 1
+		else:
+			_spent = true
+			queue_free()
 
 
 func _physics_process(delta: float) -> void:

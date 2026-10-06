@@ -2,16 +2,29 @@ class_name Player
 extends Node2D
 ## プレイヤー。左右に動き、持っている銃を自動で撃つ。
 ## 銃は「弾のパラメータの組」（WeaponState）の一覧。二丁拳銃なら 2 つ入る。
+## 敵や敵の弾に当たると体力が減り、少しの間だけ無敵になる。
+
+signal hp_changed(hp: int, max_hp: int)
+signal died
 
 const BULLET_SCENE := preload("res://scenes/bullet.tscn")
 
 var gun_id := "handgun"
 var weapons: Array[WeaponState] = []
 var bullet_container: Node = null   # 弾を入れる場所（game.gd が渡す）
+var max_hp: int = Config.PLAYER_MAX_HP
+var hp: int = Config.PLAYER_MAX_HP
+var alive := true
+var _invincible := 0.0
 
 
 func _ready() -> void:
+	add_to_group("player")
 	set_gun(gun_id)
+	var shape := CircleShape2D.new()
+	shape.radius = Config.PLAYER_HIT_RADIUS
+	$Hurtbox/CollisionShape2D.shape = shape
+	$Hurtbox.area_entered.connect(_on_hurtbox_area_entered)
 
 
 ## 銃を持ち替える（タイトル画面ができるまでは 1/2/3 キーで切り替え）
@@ -24,7 +37,45 @@ func set_gun(id: String) -> void:
 	queue_redraw()
 
 
+func _on_hurtbox_area_entered(area: Area2D) -> void:
+	if not alive:
+		return
+	if area is Enemy:
+		if area.dead:
+			return
+		var dmg: int = area.contact_damage
+		area.crash()   # ぶつかった敵は壊れる
+		take_damage(dmg)
+	elif area is EnemyBullet:
+		var dmg: int = area.damage
+		area.queue_free()
+		take_damage(dmg)
+
+
+func take_damage(amount: int) -> void:
+	if not alive or _invincible > 0.0:
+		return
+	hp = maxi(hp - amount, 0)
+	hp_changed.emit(hp, max_hp)
+	if hp == 0:
+		alive = false
+		modulate.a = 1.0
+		$Hurtbox.set_deferred("monitoring", false)
+		queue_redraw()
+		died.emit()
+	else:
+		_invincible = Config.PLAYER_INVINCIBLE_TIME
+
+
 func _process(delta: float) -> void:
+	if not alive:
+		return
+	if _invincible > 0.0:
+		_invincible -= delta
+		# 無敵の間は点滅させる
+		modulate.a = 0.35 if fmod(_invincible, 0.16) < 0.08 else 1.0
+		if _invincible <= 0.0:
+			modulate.a = 1.0
 	_move(delta)
 	_auto_fire(delta)
 
@@ -68,8 +119,9 @@ func _fire(wpn: WeaponState) -> void:
 
 func _draw() -> void:
 	# おもちゃ風: 丸い本体と、銃ごとの銃口。絵は後で差し替える
+	var body := Color(1.0, 0.55, 0.15) if alive else Color(0.55, 0.55, 0.55)
 	draw_circle(Vector2.ZERO, 24.0, Color(0.12, 0.12, 0.16))
-	draw_circle(Vector2.ZERO, 20.0, Color(1.0, 0.55, 0.15))
+	draw_circle(Vector2.ZERO, 20.0, body)
 	draw_circle(Vector2(-6.0, -4.0), 4.0, Color(1.0, 1.0, 1.0, 0.8))
 	for wpn in weapons:
 		var r := Rect2(wpn.offset_x - 6.0, -44.0, 12.0, 26.0)

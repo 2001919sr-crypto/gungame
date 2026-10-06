@@ -10,6 +10,9 @@ const PLAYER_SPEED := 460.0          # 横移動の速さ（px/秒）
 const PLAYER_HALF_W := 26.0          # 画面端で止まるための半分の幅
 const PLAYER_BOTTOM_MARGIN := 140.0  # 画面下端からプレイヤーまでの距離
 const MUZZLE_Y := -36.0              # 弾が出る位置（プレイヤー中心からの上方向）
+const PLAYER_MAX_HP := 100
+const PLAYER_HIT_RADIUS := 16.0      # やられ判定の大きさ（見た目より小さめ＝やさしめ）
+const PLAYER_INVINCIBLE_TIME := 0.8  # ダメージを受けた後の無敵時間（秒）
 
 # ---- 弾 ----
 const BULLET_SPACING := 16.0         # 平行に並ぶ弾の間隔
@@ -65,3 +68,37 @@ const GUNS := {
 	},
 }
 const GUN_ORDER := ["handgun", "shotgun", "dual"]
+
+
+# ---- 敵 3 種 ----
+# hp: 体力 / speed: 下に進む速さ（px/秒） / radius: 当たり判定の半径
+# contact_damage: ぶつかった時にプレイヤーが受けるダメージ
+const ENEMIES := {
+	"walker": {
+		"hp": 20, "speed": 130.0, "radius": 22.0, "contact_damage": 20,
+		"color": Color(0.35, 0.6, 1.0),
+	},
+	"tank": {
+		"hp": 80, "speed": 70.0, "radius": 34.0, "contact_damage": 35,
+		"color": Color(0.55, 0.6, 0.55),
+	},
+	"shooter": {
+		"hp": 30, "speed": 150.0, "radius": 22.0, "contact_damage": 20,
+		"color": Color(0.75, 0.4, 0.95),
+		"stop_y": 260.0,          # ここで止まって撃つ
+		"shoot_delay": 0.7,       # 止まってから撃つまで（予告の時間）
+		"after_shot_wait": 0.8,   # 撃った後に止まっている時間
+		"bullet_speed": 330.0,
+		"bullet_damage": 15,
+	},
+}
+
+# ---- 敵の出現表 ----
+# until: この秒数まで / interval: 何秒ごとに 1 体出すか / weights: 種類ごとの出やすさ
+# 55 秒以降はボス（Step 4）。それまでは最後の行が続く
+const WAVES := [
+	{"until": 15.0, "interval": 1.0, "weights": {"walker": 1}},
+	{"until": 35.0, "interval": 0.8, "weights": {"walker": 3, "tank": 1}},
+	{"until": 99999.0, "interval": 0.65, "weights": {"walker": 3, "tank": 1, "shooter": 1}},
+]
+const SPAWN_MARGIN_X := 40.0          # 画面の端から何 px 内側に出すか
