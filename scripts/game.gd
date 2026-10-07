@@ -335,7 +335,7 @@ func _on_item_picked(item: Item) -> void:
 
 
 func _on_gate_passed(kind: String, side: int) -> void:
-	# 二丁拳銃は通った側の銃だけが育つ。それ以外は 1 丁なので全部に効く
+	# 銃口が 2 つある銃は通った側の銃だけが育つ（今の 3 種は 1 つなので全部に効く）
 	var targets: Array[WeaponState] = player.weapons
 	if player.weapons.size() > 1:
 		targets = [player.weapons[0 if side < 0 else 1]]

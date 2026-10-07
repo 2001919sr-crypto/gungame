@@ -30,7 +30,7 @@ const MAX_POWER_SIZE := 2.0          # 上乗せで弾が大きくなる上限�
 const MAX_SPREAD_DEG := 110.0        # 扇の広がりの上限
 
 # ---- 銃 3 種 ----
-# barrels: 銃口の横位置の一覧。要素の数だけ「弾のパラメータの組」ができる（二丁拳銃は 2 つ）
+# barrels: 銃口の横位置の一覧。要素の数だけ「弾のパラメータの組」ができる（今の 3 種はすべて 1 つ）
 # count: 1 回に撃つ弾の数 / damage: 1 発の威力 / fire_rate: 1 秒に撃つ回数
 # spread_deg: 0 なら平行に並ぶ、0 より大きければ扇状に広がる角度
 # range_px: 弾の届く距離。最初は画面の上端（約 780px 先）まで届かない。
@@ -66,23 +66,25 @@ const GUNS := {
 		"range_px": 360.0,
 		"bullet_speed": 800.0,
 	},
-	"dual": {
-		"label": "DUAL",
-		"name": "二丁拳銃",
-		"desc": "左右に 1 丁ずつ\n左右のゲートで\n別々に育つ",
-		"barrels": [-16.0, 16.0],
-		"colors": [Color(0.3, 0.85, 0.9), Color(0.75, 0.45, 0.95)],
+	# 威力・射程・貫通が少し強い代わりに連射が遅い（1 秒あたりのダメージはハンドガンとほぼ同じ）
+	"sniper": {
+		"label": "SNIPER",
+		"name": "スナイパー",
+		"desc": "敵 2 体を貫通\n遠くまで届く\n連射 遅い",
+		"barrels": [0.0],
+		"colors": [Color(0.3, 0.85, 0.9)],
+		"long_barrel": true,   # 見た目: 長い銃身とスコープ
 		"count": 1,
-		"damage": 7,
-		"fire_rate": 3.0,
-		"pierce": 0,
-		"size": 0.9,
+		"damage": 14,
+		"fire_rate": 2.2,
+		"pierce": 1,
+		"size": 0.85,
 		"spread_deg": 0.0,
-		"range_px": 560.0,
-		"bullet_speed": 900.0,
+		"range_px": 700.0,
+		"bullet_speed": 1300.0,
 	},
 }
-const GUN_ORDER := ["handgun", "shotgun", "dual"]
+const GUN_ORDER := ["handgun", "shotgun", "sniper"]
 const SHOTGUN_SPREAD_PER_PELLET := 6.0   # ショットガンは弾数 +1 ごとに扇がこれだけ広がる
 
 

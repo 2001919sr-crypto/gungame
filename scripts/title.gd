@@ -8,8 +8,8 @@ var _toast: Label
 
 func _ready() -> void:
 	get_tree().paused = false
-	# テスト用: --autopick が付いていたらタイトルを飛ばしてすぐ遊ぶ
-	if TestTools.value("--autopick=") != "":
+	# テスト用: --autopick か --skiptitle が付いていたらタイトルを飛ばしてすぐ遊ぶ
+	if TestTools.value("--autopick=") != "" or TestTools.has("--skiptitle"):
 		_start.call_deferred()
 		return
 	set_anchors_preset(Control.PRESET_FULL_RECT)

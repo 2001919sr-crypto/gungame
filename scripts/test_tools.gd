@@ -5,6 +5,7 @@ extends Node
 ##   --zakotime=秒       雑魚区間の長さを変える（ボスを早く確かめたい時）
 ##   --dieat=秒          この秒数でわざと倒れる（リザルト画面の確認用）
 ##   --openreward=mid    ご褒美の 3 択をすぐ出す（big も可）
+##   --skiptitle         タイトルを飛ばす（銃を選ぶ画面の確認用）
 ##   --godmode           やられない（1 周を通しで確かめる時）
 ##   --openpause / --debuglog
 

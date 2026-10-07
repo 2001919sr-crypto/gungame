@@ -144,9 +144,15 @@ class GunIcon:
 		for i in barrels.size():
 			var x := c.x + (float(i) - float(barrels.size() - 1) * 0.5) * gap
 			var col: Color = colors[i % colors.size()]
-			# 銃身と持ち手
-			draw_rect(Rect2(x - 12, c.y - 40, 24, 56), outline)
-			draw_rect(Rect2(x - 9, c.y - 37, 18, 50), col)
+			# 銃身と持ち手（スナイパーは細長い銃身とスコープ）
+			if def.get("long_barrel", false):
+				draw_rect(Rect2(x - 8, c.y - 52, 16, 68), outline)
+				draw_rect(Rect2(x - 5, c.y - 49, 10, 62), col)
+				draw_rect(Rect2(x + 8, c.y - 22, 14, 22), outline)
+				draw_circle(Vector2(x + 15, c.y - 26), 7.0, outline)
+			else:
+				draw_rect(Rect2(x - 12, c.y - 40, 24, 56), outline)
+				draw_rect(Rect2(x - 9, c.y - 37, 18, 50), col)
 			draw_rect(Rect2(x - 4, c.y + 16, 22, 28), outline)
 			draw_rect(Rect2(x - 1, c.y + 19, 16, 22), col.darkened(0.25))
 		# ショットガンは扇の線

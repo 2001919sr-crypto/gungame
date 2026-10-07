@@ -1,7 +1,7 @@
 class_name Player
 extends Node2D
 ## プレイヤー。左右に動き、持っている銃を自動で撃つ。
-## 銃は「弾のパラメータの組」（WeaponState）の一覧。二丁拳銃なら 2 つ入る。
+## 銃は「弾のパラメータの組」（WeaponState）の一覧。銃口が 2 つある銃なら 2 つ入る（今の 3 種は 1 つ）。
 ## 敵や敵の弾に当たると体力が減り、少しの間だけ無敵になる。
 ## 体力に上限はない。敵に与えたダメージの lifesteal（最初は 5%）ぶん回復する（吸収）。
 
@@ -162,7 +162,12 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, 24.0, Color(0.12, 0.12, 0.16))
 	draw_circle(Vector2.ZERO, 20.0, body)
 	draw_circle(Vector2(-6.0, -4.0), 4.0, Color(1.0, 1.0, 1.0, 0.8))
+	var long_barrel: bool = gun_id != "" and Config.GUNS[gun_id].get("long_barrel", false)
 	for wpn in weapons:
 		var r := Rect2(wpn.offset_x - 6.0, -44.0, 12.0, 26.0)
+		if long_barrel:
+			r = Rect2(wpn.offset_x - 5.0, -62.0, 10.0, 44.0)   # スナイパーは細長い銃身
 		draw_rect(r, Color(0.12, 0.12, 0.16))
 		draw_rect(r.grow(-2.5), wpn.color)
+		if long_barrel:
+			draw_circle(Vector2(wpn.offset_x + 9.0, -32.0), 5.0, Color(0.12, 0.12, 0.16))   # スコープ
