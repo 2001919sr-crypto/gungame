@@ -1,6 +1,6 @@
 class_name Item
 extends Area2D
-## 道中に流れてくるアイテム。触れると取れる。種類と色は config.gd の ITEMS。
+## 敵が落とすアイテム。下に流れてくる。触れると取れる。種類と色は config.gd の ITEMS。
 
 signal picked(item: Item)
 
@@ -44,8 +44,6 @@ func _draw() -> void:
 			draw_circle(Vector2(0, bob), r * 0.75, outline)
 			draw_circle(Vector2(0, bob), r * 0.75 - 3.0, col)
 			draw_circle(Vector2(0, bob), r * 0.4, col.darkened(0.2))
-		"heart":
-			_draw_heart(Vector2(0, bob), r, outline, col)
 		_:
 			# 横長のカプセルに「威力+1」などの文字
 			var w := 84.0
@@ -62,16 +60,3 @@ func _draw_capsule(c: Vector2, w: float, h: float, col: Color) -> void:
 	draw_rect(Rect2(c.x - w * 0.5 + r, c.y - r, w - h, h), col)
 	draw_circle(c + Vector2(-w * 0.5 + r, 0), r, col)
 	draw_circle(c + Vector2(w * 0.5 - r, 0), r, col)
-
-func _draw_heart(c: Vector2, r: float, outline: Color, col: Color) -> void:
-	for pass_i in 2:
-		var grow := 3.0 if pass_i == 0 else 0.0
-		var cc := outline if pass_i == 0 else col
-		var lobe := r * 0.45 + grow
-		draw_circle(c + Vector2(-r * 0.38, -r * 0.2), lobe, cc)
-		draw_circle(c + Vector2(r * 0.38, -r * 0.2), lobe, cc)
-		draw_colored_polygon(PackedVector2Array([
-			c + Vector2(-r * 0.8 - grow, -r * 0.05),
-			c + Vector2(r * 0.8 + grow, -r * 0.05),
-			c + Vector2(0, r * 0.8 + grow),
-		]), cc)

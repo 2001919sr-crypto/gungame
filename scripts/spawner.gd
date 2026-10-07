@@ -1,5 +1,5 @@
 extends Node
-## 「何秒に何を出すか」。敵・ゲート・アイテムをまとめて出す。数値は config.gd。
+## 「何秒に何を出すか」。敵とゲートを出し、倒された敵が落とすアイテムも出す。数値は config.gd。
 ## rng（乱数）を 1 つにまとめてあるので、後でデイリーチャレンジの「日付シード」を入れられる。
 
 signal enemy_killed(enemy: Enemy)
@@ -19,7 +19,6 @@ var elapsed := 0.0    # 雑魚区間にいた時間の合計。出現表（WAVES
 var hp_mult := 1.0    # 周回で強くなった敵の体力の倍率（game.gd が増やす）
 var rng := RandomNumberGenerator.new()
 var _enemy_cd := 0.6
-var _item_cd := Config.ITEM_FIRST
 var _gate_cd := Config.GATE_FIRST
 
 
@@ -30,7 +29,6 @@ func _ready() -> void:
 ## 雑魚区間の始まり。ゲートとアイテムの間隔を最初から数え直す
 func start_section() -> void:
 	_enemy_cd = 0.6
-	_item_cd = Config.ITEM_FIRST
 	_gate_cd = Config.GATE_FIRST
 	active = true
 
@@ -44,13 +42,6 @@ func _process(delta: float) -> void:
 		var wave := _current_wave()
 		_enemy_cd += wave["interval"]
 		_spawn_enemy(_pick(wave["weights"]))
-	_item_cd -= delta
-	if _item_cd <= 0.0:
-		_item_cd += Config.ITEM_INTERVAL
-		var weights := {}
-		for k in Config.ITEMS:
-			weights[k] = Config.ITEMS[k]["weight"]
-		spawn_item(_pick(weights), Vector2(_lane_x(), -40.0))
 	_gate_cd -= delta
 	if _gate_cd <= 0.0:
 		_gate_cd += Config.GATE_INTERVAL
@@ -92,9 +83,11 @@ func _spawn_enemy(type_id: String) -> void:
 
 func _on_enemy_died(e: Enemy) -> void:
 	enemy_killed.emit(e)
-	if e.type_id == "tank":
-		# タンクは必ずアイテムを落とす（倒した場所から流れてくる）
-		spawn_item.call_deferred(_pick(Config.TANK_DROP_WEIGHTS), e.position)
+	# 敵は必ずアイテムを 1 個落とす（倒した場所から流れてくる）
+	var weights := {}
+	for k in Config.ITEMS:
+		weights[k] = Config.ITEMS[k]["weight"]
+	spawn_item.call_deferred(_pick(weights), e.position)
 
 
 func spawn_item(kind: String, pos: Vector2) -> void:

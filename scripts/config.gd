@@ -4,7 +4,7 @@ extends Node
 # ---- 画面 ----
 const SCREEN_W := 540
 const SCREEN_H := 960
-const SCROLL_SPEED := 220.0          # 地面が流れる速さ。ゲートとアイテムもこの速さで流れてくる
+const SCROLL_SPEED := 220.0          # 地面が流れる速さ。ゲートと落ちたアイテムもこの速さで流れてくる
 const SPEED_STEPS := [1.0, 1.5, 2.0]  # 倍速ボタンで切り替わる速さ
 
 
@@ -17,7 +17,8 @@ const PLAYER_SPEED := 460.0          # 横移動の速さ（px/秒）
 const PLAYER_HALF_W := 26.0          # 画面端で止まるための半分の幅
 const PLAYER_BOTTOM_MARGIN := 140.0  # 画面下端からプレイヤーまでの距離
 const MUZZLE_Y := -36.0              # 弾が出る位置（プレイヤー中心からの上方向）
-const PLAYER_MAX_HP := 100
+const PLAYER_START_HP := 100         # 最初の体力。上限はない（与えたダメージの吸収でどこまでも増える）
+const LIFESTEAL_START := 0.05        # 与えたダメージのうち体力に戻る割合（5%）
 const PLAYER_HIT_RADIUS := 16.0      # やられ判定の大きさ（見た目より小さめ＝やさしめ）
 const PLAYER_INVINCIBLE_TIME := 0.8  # ダメージを受けた後の無敵時間（秒）
 
@@ -27,8 +28,6 @@ const MAX_BULLETS := 1000            # 画面内の弾の上限（安全柵。We
 const VOLLEY_CAP := 40               # 1 回に撃つ弾は 1 丁あたりここまで。超えた分は 1 発の威力に上乗せ
 const MAX_POWER_SIZE := 2.0          # 上乗せで弾が大きくなる上限（倍率）
 const MAX_SPREAD_DEG := 110.0        # 扇の広がりの上限
-const BOUNCE_SEARCH_RADIUS := 320.0  # 跳弾が次の敵を探す範囲
-const BOUNCE_RANGE_BONUS := 160.0    # 跳ねた時に射程を少し回復する量
 
 # ---- 銃 3 種 ----
 # barrels: 銃口の横位置の一覧。要素の数だけ「弾のパラメータの組」ができる（二丁拳銃は 2 つ）
@@ -47,7 +46,6 @@ const GUNS := {
 		"damage": 10,
 		"fire_rate": 3.0,
 		"pierce": 0,
-		"bounce": 0,
 		"size": 1.0,
 		"spread_deg": 0.0,
 		"range_px": 560.0,
@@ -63,7 +61,6 @@ const GUNS := {
 		"damage": 14,
 		"fire_rate": 1.6,
 		"pierce": 0,
-		"bounce": 0,
 		"size": 1.1,
 		"spread_deg": 30.0,
 		"range_px": 360.0,
@@ -79,7 +76,6 @@ const GUNS := {
 		"damage": 7,
 		"fire_rate": 3.0,
 		"pierce": 0,
-		"bounce": 0,
 		"size": 0.9,
 		"spread_deg": 0.0,
 		"range_px": 560.0,
@@ -91,19 +87,19 @@ const SHOTGUN_SPREAD_PER_PELLET := 6.0   # ショットガンは弾数 +1 ごと
 
 
 # ---- 敵 3 種 ----
-# hp: 体力 / speed: 下に進む速さ（px/秒） / radius: 当たり判定の半径
+# hp: 体力 / speed: 下に進む速さ（px/秒） / size: 当たり判定の四角（幅は列 180px いっぱい近く）
 # contact_damage: ぶつかった時にプレイヤーが受けるダメージ
 const ENEMIES := {
 	"walker": {
-		"hp": 20, "speed": 130.0, "radius": 22.0, "contact_damage": 20,
+		"hp": 20, "speed": 130.0, "size": Vector2(150, 64), "contact_damage": 20,
 		"color": Color(0.35, 0.6, 1.0),
 	},
 	"tank": {
-		"hp": 80, "speed": 70.0, "radius": 34.0, "contact_damage": 35,
+		"hp": 80, "speed": 70.0, "size": Vector2(160, 110), "contact_damage": 35,
 		"color": Color(0.55, 0.6, 0.55),
 	},
 	"shooter": {
-		"hp": 30, "speed": 150.0, "radius": 22.0, "contact_damage": 20,
+		"hp": 30, "speed": 150.0, "size": Vector2(140, 80), "contact_damage": 20,
 		"color": Color(0.75, 0.4, 0.95),
 		"stop_y": 260.0,          # ここで止まって撃つ
 		"shoot_delay": 0.7,       # 止まってから撃つまで（予告の時間）
@@ -130,7 +126,8 @@ const SPAWN_AHEAD := 520.0
 const GIFT_FALL_SPEED := 220.0
 const GIFT_RADIUS := 26.0
 
-# ---- 道中のアイテム（本家と同じ「+1」単位） ----
+# ---- 敵が落とすアイテム（本家と同じ「+1」単位） ----
+# 敵は倒されると必ず 1 個落とす。道中に流れてくるアイテムはない。回復は吸収だけ（ハートはない）
 # 「+1」で実際にどれだけ上がるか
 const ITEM_STEP := {
 	"damage": 1,          # 威力 +1
@@ -138,28 +135,20 @@ const ITEM_STEP := {
 	"speed": 60.0,        # 弾速 +1 = 60px/秒
 	"rate": 0.25,         # 連射 +1 = 1 秒あたり 0.25 回
 }
+# weight: 落とす時の出やすさ
 const ITEMS := {
-	"heart":  {"label": "回復",   "weight": 2, "color": Color(1.0, 0.35, 0.45)},
 	"damage": {"label": "威力+1", "weight": 2, "color": Color(1.0, 0.55, 0.15)},
 	"range":  {"label": "射程+1", "weight": 2, "color": Color(0.3, 0.75, 0.4)},
 	"speed":  {"label": "弾速+1", "weight": 1, "color": Color(0.3, 0.6, 1.0)},
 	"rate":   {"label": "連射+1", "weight": 1, "color": Color(0.75, 0.45, 0.95)},
-	"coin":   {"label": "コイン", "weight": 4, "color": Color(1.0, 0.82, 0.2)},
+	"coin":   {"label": "コイン", "weight": 3, "color": Color(1.0, 0.82, 0.2)},
 }
-const ITEM_FIRST := 3.0              # 最初のアイテムが出る秒
-const ITEM_INTERVAL := 2.5           # 何秒ごとに 1 個流れてくるか
 const ITEM_RADIUS := 24.0
-# タンクが必ず落とすアイテムの出やすさ（コインは出ない）
-const TANK_DROP_WEIGHTS := {"heart": 2, "damage": 2, "range": 2, "speed": 1, "rate": 1}
-# ハートの回復量は進むほど大きくなる: 基本 + 1 分ごとの増加
-const HEART_HEAL_BASE := 10
-const HEART_HEAL_PER_MIN := 15
 
 # ---- ゲート（弾の「形」を変える 2 択） ----
 const GATES := {
 	"count_up":   {"label": "弾数\n+1",   "good": true,  "weight": 5},
 	"pierce":     {"label": "貫通\n+1",   "good": true,  "weight": 3},
-	"bounce":     {"label": "跳弾\n+1",   "good": true,  "weight": 2},
 	"size":       {"label": "巨大弾",     "good": true,  "weight": 2},
 	"count_down": {"label": "弾数\n-1",   "good": false, "weight": 3},
 	"range_down": {"label": "射程\n-2",   "good": false, "weight": 2},
@@ -179,41 +168,40 @@ const REWARD_DELAY := 1.0            # ボスを倒してからご褒美の 3 �
 const HP_MULT_MID := 1.2             # 中ボスを倒すたびに敵の体力がこの倍率で増える（掛け算で重なる）
 const HP_MULT_BIG := 1.5             # 大ボスを倒すたびに
 const DISTANCE_PER_SEC := 10.0       # スコア（進んだ距離）: 1 秒 = 10m
-const BOSS_ENTER_SPEED := 140.0      # 上から降りてくる速さ
-const BOSS_MAX_Y := 520.0            # 射程が短い時に下がってくる限界
+const BOSS_ENTER_SPEED := 140.0      # 大ボスが上から降りてくる速さ
+const BOSS_MAX_Y := 520.0            # 大ボスが射程の短い銃に合わせて下がってくる限界
+const BOSS_WIDTH := 510.0            # ボスは横幅いっぱい（避けられない）
+const CRUSH_DAMAGE_RATE := 0.2       # ボスに着かれた時のダメージ = ボスの残り体力 × この割合。ボスは消える
 
-# size: 当たり判定の四角の大きさ / hover_y: 居座る高さ / coins: 倒した時のコイン
+# 中ボス: 雑魚と同じ速さで画面の上の外から降りてくる。弾は撃たない。着かれる前に倒しきる
+# 大ボス: 第 1 段階は上に居座って扇形にばらまく。体力 50% 以下で赤くなり、速く降りてくる
+# size: 当たり判定の四角の大きさ / coins: 倒した時のコイン
 const BOSSES := {
 	"mid": {
-		"name": "中ボス", "hp": 1000, "size": Vector2(130, 84), "contact_damage": 30,
-		"color": Color(0.95, 0.5, 0.25), "hover_y": 170.0, "coins": 10,
-		"move_speed": 260.0,      # 列から列へ動く速さ
-		"fire_interval": 1.8,     # 何秒ごとに撃つか
-		"aim_time": 0.45,         # 撃つ前に目が赤く光る時間（予告）
-		"burst": 3, "burst_gap": 0.16,
-		"bullet_speed": 340.0, "bullet_damage": 15,
+		"name": "中ボス", "hp": 400, "size": Vector2(BOSS_WIDTH, 90), "contact_damage": 30,
+		"color": Color(0.95, 0.5, 0.25), "coins": 10,
+		"speed": 130.0,           # 降りてくる速さ（ウォーカーと同じ）
 	},
 	"big": {
-		"name": "大ボス", "hp": 6000, "size": Vector2(190, 110), "contact_damage": 40,
+		"name": "大ボス", "hp": 4000, "size": Vector2(BOSS_WIDTH, 120), "contact_damage": 40,
 		"color": Color(0.55, 0.4, 0.9), "rage_color": Color(0.92, 0.25, 0.25), "hover_y": 180.0, "coins": 30,
-		"sway": 160.0, "sway_speed": 0.9,       # 左右の揺れ幅と速さ
 		"fire_interval": 1.3, "fan": 5, "fan_deg": 70.0,
 		"rage_fire_interval": 1.7, "rage_fan": 3,
 		"bullet_speed": 280.0, "bullet_damage": 15,
-		"charge_speed": 22.0,     # 第 2 段階で迫ってくる速さ（px/秒）
-		"crush_damage": 50,       # 迫られてプレイヤーの所まで来た時のダメージ
+		"charge_speed": 90.0,     # 第 2 段階で降りてくる速さ（px/秒）
 	},
 }
 
 # ---- ボスのご褒美（3 択） ----
-# 中ボス: 道中アイテム +1 の 10 個分。毎回この中からランダムに 3 つ
+# 中ボス: アイテム +1 の 10 個分（吸収だけは +5%）。毎回この中からランダムに 3 つ
+const REWARD_LIFESTEAL_STEP := 0.05
 const REWARD_MID_STEPS := 10
 const REWARDS_MID := {
 	"damage": {"name": "威力 +10", "badge": "+10", "desc": "1 発の威力が\n10 上がる", "color": Color(1.0, 0.55, 0.15)},
 	"range":  {"name": "射程 +10", "badge": "+10", "desc": "弾が\nずっと遠くまで\n届く", "color": Color(0.3, 0.75, 0.4)},
 	"speed":  {"name": "弾速 +10", "badge": "+10", "desc": "弾が\nとても速くなる", "color": Color(0.3, 0.6, 1.0)},
 	"rate":   {"name": "連射 +10", "badge": "+10", "desc": "撃つ間隔が\nぐっと短くなる", "color": Color(0.75, 0.45, 0.95)},
-	"heal":   {"name": "全回復", "badge": "HP", "desc": "体力が\n満タンになる", "color": Color(1.0, 0.35, 0.45)},
+	"lifesteal": {"name": "吸収 +5%", "badge": "+5%", "desc": "与えたダメージの\n回復する割合が\n5% 上がる", "color": Color(1.0, 0.35, 0.45)},
 }
 # 大ボス: ×2。いつもこの 3 つ（並び順はランダム）
 const REWARDS_BIG := {

@@ -3,8 +3,9 @@ extends Node2D
 ## プレイヤー。左右に動き、持っている銃を自動で撃つ。
 ## 銃は「弾のパラメータの組」（WeaponState）の一覧。二丁拳銃なら 2 つ入る。
 ## 敵や敵の弾に当たると体力が減り、少しの間だけ無敵になる。
+## 体力に上限はない。敵に与えたダメージの lifesteal（最初は 5%）ぶん回復する（吸収）。
 
-signal hp_changed(hp: int, max_hp: int)
+signal hp_changed(hp: int)
 signal died
 
 const BULLET_SCENE := preload("res://scenes/bullet.tscn")
@@ -12,8 +13,9 @@ const BULLET_SCENE := preload("res://scenes/bullet.tscn")
 var gun_id := ""   # 最初は銃なし。最初のアイテムで決まり、その後は変えられない
 var weapons: Array[WeaponState] = []
 var bullet_container: Node = null   # 弾を入れる場所（game.gd が渡す）
-var max_hp: int = Config.PLAYER_MAX_HP
-var hp: int = Config.PLAYER_MAX_HP
+var hp: int = Config.PLAYER_START_HP
+var lifesteal: float = Config.LIFESTEAL_START   # 与えたダメージのうち体力に戻る割合
+var _absorb_pool := 0.0   # 1 に満たない回復を貯めておく（威力 10 の 5% = 0.5 など）
 var alive := true
 var _invincible := 0.0
 
@@ -53,20 +55,26 @@ func _on_hurtbox_area_entered(area: Area2D) -> void:
 		area.pick()   # アイテム
 
 
-func heal(amount: int) -> void:
-	if not alive:
+## 敵に与えたダメージを吸収して回復する（enemy.gd が呼ぶ）
+func absorb(dealt: int) -> void:
+	if not alive or dealt <= 0:
 		return
-	hp = mini(hp + amount, max_hp)
-	hp_changed.emit(hp, max_hp)
+	_absorb_pool += dealt * lifesteal
+	if _absorb_pool >= 1.0:
+		var gain := int(_absorb_pool)
+		_absorb_pool -= gain
+		hp += gain
+		hp_changed.emit(hp)
 
 
-func take_damage(amount: int) -> void:
-	if not alive or _invincible > 0.0:
+## ignore_invincible: ボスに着かれた時など、無敵時間中でも必ず受けるダメージ
+func take_damage(amount: int, ignore_invincible: bool = false) -> void:
+	if not alive or (_invincible > 0.0 and not ignore_invincible):
 		return
 	if TestTools.has("--godmode") and amount < 99999:   # テスト用: やられない（--dieat の時だけ倒れる）
 		return
 	hp = maxi(hp - amount, 0)
-	hp_changed.emit(hp, max_hp)
+	hp_changed.emit(hp)
 	if hp == 0:
 		alive = false
 		modulate.a = 1.0

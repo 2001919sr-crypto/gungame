@@ -3,7 +3,8 @@ extends Node2D
 ## 流れ: 箱が落ちてくる → 取ると「銃を選ぶ画面」 → プレイ開始 → 倒れたらリザルト
 ## 1 周 = 雑魚 → 中ボス → 雑魚 → 中ボス → 雑魚 → 大ボス（config.gd の LAP_STAGES）。死ぬまで繰り返す
 ## 雑魚区間: ゲート（弾の形が変わる 2 択）とアイテム（数値が +1）が流れてくる
-## ボス戦: 何も流れてこない。倒すとご褒美の 3 択（中ボス +10 / 大ボス ×2）
+## ボス戦: 横幅いっぱいのボスが迫る。倒すとご褒美の 3 択（中ボス +10 / 大ボス ×2）。着かれると大ダメージでご褒美なし
+## アイテムは敵が倒されると必ず落とす。回復は与えたダメージの吸収だけ
 
 enum State { CHOOSING_GUN, PLAYING, GAME_OVER }
 
@@ -195,9 +196,23 @@ func _spawn_boss(kind: String) -> void:
 	_boss.died.connect(_on_boss_killed)
 	_boss.enraged.connect(func() -> void:
 		_banner("怒った!\n迫ってくる!", Color(1.0, 0.35, 0.3), 34, 1.6))
-	_boss.crushed.connect(func(pos: Vector2) -> void:
-		FloatText.spawn(effects, pos + Vector2(0, -80), "ドーン!", Color(1.0, 0.4, 0.3), 36))
+	_boss.escaped.connect(_on_boss_escaped.bind(kind))
 	enemies.add_child(_boss)
+
+
+## ボスに着かれた: ダメージはボスが与え済み。ご褒美とコインはなしで次の区間へ
+func _on_boss_escaped(damage: int, kind: String) -> void:
+	_boss = null
+	if state != State.PLAYING:
+		return
+	_raise_enemy_hp(kind)
+	_banner("突破された!\nHP -%d" % damage, Color(1.0, 0.35, 0.3), 36, 1.6)
+	_stage_index_next()
+
+
+## 区間が進んだので敵を強くする（倒しても突破されても同じ）
+func _raise_enemy_hp(kind: String) -> void:
+	spawner.hp_mult *= Config.HP_MULT_MID if kind == "mid" else Config.HP_MULT_BIG
 
 
 func _on_boss_killed(boss: Enemy) -> void:
@@ -207,10 +222,9 @@ func _on_boss_killed(boss: Enemy) -> void:
 	coins += def["coins"]
 	if kind == "mid":
 		mid_kills += 1
-		spawner.hp_mult *= Config.HP_MULT_MID
 	else:
 		big_kills += 1
-		spawner.hp_mult *= Config.HP_MULT_BIG
+	_raise_enemy_hp(kind)
 	_banner("%s 撃破!\nコイン +%d" % [def["name"], def["coins"]], Color(1.0, 0.9, 0.4), 36, 1.4)
 	stage_phase = "reward"
 	_update_hud()
@@ -246,8 +260,8 @@ func _on_reward_chosen(id: String) -> void:
 	var table: Dictionary = Config.REWARDS_MID if kind == "mid" else Config.REWARDS_BIG
 	var def: Dictionary = table[id]
 	if kind == "mid":
-		if id == "heal":
-			player.heal(player.max_hp)
+		if id == "lifesteal":
+			player.lifesteal += Config.REWARD_LIFESTEAL_STEP
 		else:
 			for w in player.weapons:
 				w.apply_item(id, Config.REWARD_MID_STEPS)
@@ -304,11 +318,6 @@ func _notification(what: int) -> void:
 
 # ---- アイテムとゲート ----
 
-## ハートの回復量（進むほど大きくなる）
-func heart_heal_amount() -> int:
-	return Config.HEART_HEAL_BASE + int(run_time / 60.0 * Config.HEART_HEAL_PER_MIN)
-
-
 func _on_item_picked(item: Item) -> void:
 	if not player.alive:
 		return
@@ -316,10 +325,6 @@ func _on_item_picked(item: Item) -> void:
 	var text: String = def["label"]
 	_picked_items[text] = _picked_items.get(text, 0) + 1
 	match item.kind:
-		"heart":
-			var amount := heart_heal_amount()
-			player.heal(amount)
-			text = "回復+%d" % amount
 		"coin":
 			coins += 1
 		_:
@@ -363,12 +368,13 @@ func _process(delta: float) -> void:
 			enemies.get_child_count(), boss_text, stats_label.text.replace("\n", " / ")])
 
 
-func _on_hp_changed(_hp: int, _max_hp: int) -> void:
+func _on_hp_changed(_hp: int) -> void:
 	_update_hud()
 
 
 func _update_hud() -> void:
-	hp_label.text = "HP %d / %d   倒した数 %d   コイン %d" % [player.hp, player.max_hp, kills, coins]
+	hp_label.text = "HP %d   吸収 %d%%   倒した数 %d   コイン %d" % [
+		player.hp, int(round(player.lifesteal * 100.0)), kills, coins]
 	var lines := []
 	for w in player.weapons:
 		lines.append(w.summary())

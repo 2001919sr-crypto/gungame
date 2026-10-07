@@ -1,7 +1,8 @@
 class_name Enemy
 extends Area2D
 ## 敵。種類（walker / tank / shooter）ごとの数値は config.gd の ENEMIES。
-## 下へ進み、弾が当たると体力が減る。0 になると died を出して消える。
+## 列（180px）いっぱいの四角。下へ進み、弾が当たると体力が減る。0 になると died を出して消える。
+## 実際に削った体力はプレイヤーに知らせる（吸収で回復するため）。
 
 signal died(enemy: Enemy)
 
@@ -11,7 +12,7 @@ var type_id := "walker"
 var def: Dictionary = {}
 var hp := 1
 var max_hp := 1
-var radius := 22.0
+var half := Vector2(75, 32)   # 当たり判定の四角の半分の大きさ
 var contact_damage := 20
 var dead := false
 var bullet_container: Node = null   # 敵の弾を入れる場所（spawner が渡す）
@@ -27,15 +28,15 @@ func setup(id: String, pos: Vector2, hp_mult: float = 1.0) -> void:
 	def = Config.ENEMIES[id]
 	hp = maxi(int(round(def["hp"] * hp_mult)), 1)
 	max_hp = hp
-	radius = def["radius"]
+	half = def["size"] * 0.5
 	contact_damage = def["contact_damage"]
 	position = pos
 
 
 func _ready() -> void:
 	# 形は 1 体ごとに作る（共有すると全員の大きさが変わってしまう）
-	var shape := CircleShape2D.new()
-	shape.radius = radius
+	var shape := RectangleShape2D.new()
+	shape.size = half * 2.0
 	$CollisionShape2D.shape = shape
 	add_to_group("enemies")
 
@@ -48,7 +49,7 @@ func _process(delta: float) -> void:
 		_shooter_move(delta)
 	else:
 		position.y += def["speed"] * delta
-	if position.y > get_viewport_rect().size.y + radius + 20.0:
+	if position.y > get_viewport_rect().size.y + half.y + 20.0:
 		queue_free()   # 下まで抜けた敵は消すだけ（倒した数には入らない）
 	queue_redraw()
 
@@ -82,15 +83,20 @@ func _shoot() -> void:
 	if player:
 		dir = (player.global_position - global_position).normalized()
 	var b := ENEMY_BULLET_SCENE.instantiate()
-	b.setup(global_position + dir * (radius + 6.0), dir * def["bullet_speed"], def["bullet_damage"])
+	b.setup(global_position + dir * (half.y + 6.0), dir * def["bullet_speed"], def["bullet_damage"])
 	bullet_container.add_child(b)
 
 
 func take_damage(amount: int) -> void:
 	if dead:
 		return
+	# とどめの一撃で余った分は数えない（吸収で体力が増えすぎないように）
+	var dealt := mini(amount, hp)
 	hp -= amount
 	_flash = 0.07
+	var player := get_tree().get_first_node_in_group("player")
+	if player:
+		player.absorb(dealt)
 	if hp <= 0:
 		dead = true
 		died.emit(self)
@@ -110,29 +116,35 @@ func _draw() -> void:
 	if _flash > 0.0:
 		body = Color.WHITE
 	var outline := Color(0.12, 0.12, 0.16)
-	var r := radius
+	var w := half.x
+	var h := half.y
 	match type_id:
 		"tank":
-			# 四角いブロックのおもちゃ
-			draw_rect(Rect2(-r, -r, r * 2.0, r * 2.0), outline)
-			draw_rect(Rect2(-r + 4.0, -r + 4.0, r * 2.0 - 8.0, r * 2.0 - 8.0), body)
-			draw_rect(Rect2(-r * 0.5, r * 0.15, r, r * 0.35), outline)
+			# 四角いブロックのおもちゃ。キャタピラ付き
+			draw_rect(Rect2(-w, -h, w * 2.0, h * 2.0), outline)
+			draw_rect(Rect2(-w + 5.0, -h + 5.0, w * 2.0 - 10.0, h * 2.0 - 10.0), body)
+			draw_rect(Rect2(-w + 5.0, h - 26.0, w * 2.0 - 10.0, 21.0), body.darkened(0.3))
+			for i in 6:
+				draw_circle(Vector2(-w + 20.0 + i * (w * 2.0 - 40.0) / 5.0, h - 15.0), 6.0, outline)
+			draw_rect(Rect2(-w * 0.4, -h * 0.35, w * 0.8, h * 0.4), outline)
 		"shooter":
-			# 丸い本体に大きな目。狙っている間は目が赤く光る（予告）
-			draw_circle(Vector2.ZERO, r, outline)
-			draw_circle(Vector2.ZERO, r - 3.0, body)
+			# 横長の砲台。狙っている間は目が赤く光る（予告）
+			draw_rect(Rect2(-w, -h, w * 2.0, h * 2.0), outline)
+			draw_rect(Rect2(-w + 4.0, -h + 4.0, w * 2.0 - 8.0, h * 2.0 - 8.0), body)
 			var eye := Color(1.0, 0.2, 0.2) if _state == "aim" else Color.WHITE
-			draw_circle(Vector2(0.0, 4.0), r * 0.42, outline)
-			draw_circle(Vector2(0.0, 4.0), r * 0.32, eye)
+			draw_circle(Vector2(0.0, 0.0), h * 0.55, outline)
+			draw_circle(Vector2(0.0, 0.0), h * 0.42, eye)
+			draw_rect(Rect2(-6.0, h - 4.0, 12.0, 14.0), outline)
 		_:
-			# ロボットの頭: 角丸っぽい四角に 2 つの目
-			draw_rect(Rect2(-r, -r * 0.85, r * 2.0, r * 1.7), outline)
-			draw_rect(Rect2(-r + 3.0, -r * 0.85 + 3.0, r * 2.0 - 6.0, r * 1.7 - 6.0), body)
-			draw_circle(Vector2(-r * 0.4, 0.0), 4.0, outline)
-			draw_circle(Vector2(r * 0.4, 0.0), 4.0, outline)
+			# ロボットの頭: 横長の四角に 2 つの目
+			draw_rect(Rect2(-w, -h, w * 2.0, h * 2.0), outline)
+			draw_rect(Rect2(-w + 4.0, -h + 4.0, w * 2.0 - 8.0, h * 2.0 - 8.0), body)
+			draw_circle(Vector2(-w * 0.35, -2.0), 8.0, outline)
+			draw_circle(Vector2(w * 0.35, -2.0), 8.0, outline)
+			draw_rect(Rect2(-w * 0.2, h * 0.35, w * 0.4, 6.0), outline)
 	# 体力バー（減っている時だけ）
 	if hp < max_hp:
-		var w := r * 2.0
-		var y := -r - 12.0
-		draw_rect(Rect2(-w * 0.5, y, w, 6.0), outline)
-		draw_rect(Rect2(-w * 0.5 + 1.0, y + 1.0, (w - 2.0) * float(hp) / float(max_hp), 4.0), Color(0.95, 0.3, 0.3))
+		var bw := w * 1.6
+		var y := -h - 12.0
+		draw_rect(Rect2(-bw * 0.5, y, bw, 7.0), outline)
+		draw_rect(Rect2(-bw * 0.5 + 1.0, y + 1.0, (bw - 2.0) * float(hp) / float(max_hp), 5.0), Color(0.95, 0.3, 0.3))
