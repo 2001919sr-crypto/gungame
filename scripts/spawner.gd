@@ -14,8 +14,9 @@ var enemy_container: Node = null
 var enemy_bullet_container: Node = null
 var item_container: Node = null
 var gate_container: Node = null
-var active := false   # 銃を選ぶまでは出さない（game.gd が true にする）
-var elapsed := 0.0
+var active := false   # 雑魚区間の間だけ true（game.gd が切り替える。ボス戦の間は何も出さない）
+var elapsed := 0.0    # 雑魚区間にいた時間の合計。出現表（WAVES）はこれで進む
+var hp_mult := 1.0    # 周回で強くなった敵の体力の倍率（game.gd が増やす）
 var rng := RandomNumberGenerator.new()
 var _enemy_cd := 0.6
 var _item_cd := Config.ITEM_FIRST
@@ -24,6 +25,14 @@ var _gate_cd := Config.GATE_FIRST
 
 func _ready() -> void:
 	rng.randomize()
+
+
+## 雑魚区間の始まり。ゲートとアイテムの間隔を最初から数え直す
+func start_section() -> void:
+	_enemy_cd = 0.6
+	_item_cd = Config.ITEM_FIRST
+	_gate_cd = Config.GATE_FIRST
+	active = true
 
 
 func _process(delta: float) -> void:
@@ -75,7 +84,7 @@ func _lane_x() -> float:
 func _spawn_enemy(type_id: String) -> void:
 	var e := ENEMY_SCENE.instantiate() as Enemy
 	# 画面の上の外で生まれる（射程が長ければ見える前に倒せる）
-	e.setup(type_id, Vector2(_lane_x(), -Config.SPAWN_AHEAD))
+	e.setup(type_id, Vector2(_lane_x(), -Config.SPAWN_AHEAD), hp_mult)
 	e.bullet_container = enemy_bullet_container
 	e.died.connect(_on_enemy_died)
 	enemy_container.add_child(e)

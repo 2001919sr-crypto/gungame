@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/background.gd" id="2_background"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/spawner.gd" id="4_spawner"]
 [ext_resource type="Script" path="res://scripts/reward_panel.gd" id="5_reward"]
 [ext_resource type="Script" path="res://scripts/pause_menu.gd" id="6_pause"]
+[ext_resource type="Script" path="res://scripts/result_panel.gd" id="7_result"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
@@ -83,6 +84,17 @@ theme_override_colors/font_color = Color(0.25, 0.25, 0.32, 1)
 theme_override_font_sizes/font_size = 13
 text = ""
 
+[node name="StageLabel" type="Label" parent="UI"]
+offset_left = 12.0
+offset_top = 10.0
+offset_right = 330.0
+offset_bottom = 70.0
+theme_override_colors/font_color = Color(0.15, 0.15, 0.2, 1)
+theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
+text = ""
+
 [node name="PauseButton" type="Button" parent="UI"]
 anchors_preset = 1
 anchor_left = 1.0
@@ -130,24 +142,11 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("6_pause")
 
-[node name="GameOver" type="ColorRect" parent="UI"]
+[node name="ResultPanel" type="Control" parent="UI"]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
-color = Color(0.08, 0.08, 0.12, 0.72)
-
-[node name="Label" type="Label" parent="UI/GameOver"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 36
-text = "GAME OVER"
-horizontal_alignment = 1
-vertical_alignment = 1
+script = ExtResource("7_result")

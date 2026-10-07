@@ -21,10 +21,11 @@ var _state := "enter"      # shooter 用: enter → aim → wait → leave
 var _timer := 0.0
 
 
-func setup(id: String, pos: Vector2) -> void:
+## hp_mult: 周回で強くなった倍率（中ボスごとに ×1.2、大ボスごとに ×1.5）
+func setup(id: String, pos: Vector2, hp_mult: float = 1.0) -> void:
 	type_id = id
 	def = Config.ENEMIES[id]
-	hp = def["hp"]
+	hp = maxi(int(round(def["hp"] * hp_mult)), 1)
 	max_hp = hp
 	radius = def["radius"]
 	contact_damage = def["contact_damage"]

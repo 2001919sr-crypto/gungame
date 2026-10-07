@@ -1,13 +1,15 @@
 extends Control
-## 「銃を選んでください」の 3 択画面（本家の「賞を選んでください」に相当）。
+## 3 択画面（本家の「賞を選んでください」に相当）。銃選びとボスのご褒美の両方で使う。
 ## ゲームを一時停止した状態で出し、カードを押すと chosen を出して閉じる。
-## 後でボス撃破後の強化選びにも使い回せるよう、カードの中身は外から渡す形にしている。
+## カード 1 枚 = {id, name, desc, color, badge（大きな文字）} か {id, gun（銃の定義）}
 
 signal chosen(id: String)
 
 const CARD_SIZE := Vector2(156, 300)
 
 var _cards: HBoxContainer
+var _title: Label
+var _note: Label
 
 
 func _ready() -> void:
@@ -29,39 +31,42 @@ func _ready() -> void:
 	box.grow_vertical = Control.GROW_DIRECTION_BOTH
 	add_child(box)
 
-	var title := Label.new()
-	title.text = "銃を選んでください"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 32)
-	title.add_theme_color_override("font_color", Color.WHITE)
-	box.add_child(title)
+	_title = UiKit.make_label("", 32)
+	box.add_child(_title)
 
 	_cards = HBoxContainer.new()
 	_cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	_cards.add_theme_constant_override("separation", 12)
 	box.add_child(_cards)
 
-	var note := Label.new()
-	note.text = "※ ゲーム中は交換できません"
-	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	note.add_theme_font_size_override("font_size", 16)
-	note.add_theme_color_override("font_color", Color(1, 1, 1, 0.8))
-	box.add_child(note)
+	_note = UiKit.make_label("", 16, Color(1, 1, 1, 0.8))
+	box.add_child(_note)
 
 	hide()
 
 
-## ids の順にカードを並べて表示する
-func open(ids: Array) -> void:
+## 銃を選ぶ画面（ランの最初）
+func open_guns(ids: Array) -> void:
+	var cards := []
+	for id in ids:
+		var def: Dictionary = Config.GUNS[id]
+		cards.append({"id": id, "name": def["name"], "desc": def["desc"], "gun": def})
+	open("銃を選んでください", "※ ゲーム中は交換できません", cards)
+
+
+## cards の順にカードを並べて表示する
+func open(title: String, note: String, cards: Array) -> void:
+	_title.text = title
+	_note.text = note
 	for c in _cards.get_children():
 		c.queue_free()
-	for id in ids:
-		_cards.add_child(_make_card(id))
+	for card in cards:
+		_cards.add_child(_make_card(card))
 	show()
 
 
-func _make_card(id: String) -> Button:
-	var def: Dictionary = Config.GUNS[id]
+func _make_card(card: Dictionary) -> Button:
+	var id: String = card["id"]
 	var btn := Button.new()
 	btn.custom_minimum_size = CARD_SIZE
 	btn.focus_mode = Control.FOCUS_NONE
@@ -88,14 +93,22 @@ func _make_card(id: String) -> Button:
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(v)
 
-	var icon := GunIcon.new()
-	icon.def = def
+	var icon: Control
+	if card.has("gun"):
+		var gun_icon := GunIcon.new()
+		gun_icon.def = card["gun"]
+		icon = gun_icon
+	else:
+		var badge := BadgeIcon.new()
+		badge.text = card["badge"]
+		badge.color = card["color"]
+		icon = badge
 	icon.custom_minimum_size = Vector2(0, 110)
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(icon)
 
 	var name_label := Label.new()
-	name_label.text = def["name"]
+	name_label.text = card["name"]
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.add_theme_font_size_override("font_size", 22)
 	name_label.add_theme_color_override("font_color", Color(0.15, 0.15, 0.2))
@@ -103,7 +116,7 @@ func _make_card(id: String) -> Button:
 	v.add_child(name_label)
 
 	var desc := Label.new()
-	desc.text = def["desc"]
+	desc.text = card["desc"]
 	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc.add_theme_font_size_override("font_size", 15)
 	desc.add_theme_color_override("font_color", Color(0.3, 0.3, 0.38))
@@ -141,3 +154,22 @@ class GunIcon:
 			for a in [-15.0, 0.0, 15.0]:
 				var d := Vector2.UP.rotated(deg_to_rad(a))
 				draw_line(c + Vector2(0, -44) + d * 6, c + Vector2(0, -44) + d * 18, outline, 3.0)
+
+
+## ご褒美カードの絵: 色つきの丸に「+10」「×2」などの大きな文字
+class BadgeIcon:
+	extends Control
+	const FONT := preload("res://assets/fonts/MPLUSRounded1c-Bold.ttf")
+	var text := ""
+	var color := Color.WHITE
+
+	func _draw() -> void:
+		var c := size * 0.5
+		var outline := Color(0.12, 0.12, 0.16)
+		draw_circle(c, 50.0, outline)
+		draw_circle(c, 45.0, color)
+		draw_circle(c + Vector2(-16, -18), 9.0, Color(1, 1, 1, 0.5))
+		var fs := 40 if text.length() <= 2 else 34
+		var p := Vector2(0.0, c.y + fs * 0.36)
+		draw_string_outline(FONT, p, text, HORIZONTAL_ALIGNMENT_CENTER, size.x, fs, 8, outline)
+		draw_string(FONT, p, text, HORIZONTAL_ALIGNMENT_CENTER, size.x, fs, Color.WHITE)

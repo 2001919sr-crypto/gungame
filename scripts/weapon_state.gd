@@ -49,6 +49,17 @@ func apply_item(kind: String, steps: int = 1) -> void:
 			fire_rate += Config.ITEM_STEP["rate"] * steps
 
 
+## 大ボスのご褒美「×2」
+func apply_multiplier(kind: String, factor: int = 2) -> void:
+	match kind:
+		"damage":
+			damage *= factor
+		"rate":
+			fire_rate *= factor
+		"count":
+			count *= factor
+
+
 ## ゲートの効果（弾の形を変える）
 func apply_gate(kind: String) -> void:
 	match kind:

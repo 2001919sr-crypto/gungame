@@ -19,15 +19,16 @@ func _ready() -> void:
 	area_entered.connect(_on_area_entered)
 
 
-func setup(wpn: WeaponState, start_pos: Vector2, angle_deg: float) -> void:
+## dmg と size_mult は「あふれた弾を威力に変えた」後の値（player.gd が計算する）
+func setup(wpn: WeaponState, start_pos: Vector2, angle_deg: float, dmg: int, size_mult: float = 1.0) -> void:
 	position = start_pos
 	velocity = Vector2.UP.rotated(deg_to_rad(angle_deg)) * wpn.bullet_speed
-	damage = wpn.damage
+	damage = dmg
 	pierce = wpn.pierce
 	bounce = wpn.bounce
 	range_px = wpn.range_px
 	color = wpn.color
-	scale = Vector2.ONE * wpn.size
+	scale = Vector2.ONE * wpn.size * size_mult
 
 
 func _on_area_entered(area: Area2D) -> void:

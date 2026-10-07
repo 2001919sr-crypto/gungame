@@ -63,6 +63,8 @@ func heal(amount: int) -> void:
 func take_damage(amount: int) -> void:
 	if not alive or _invincible > 0.0:
 		return
+	if TestTools.has("--godmode") and amount < 99999:   # テスト用: やられない（--dieat の時だけ倒れる）
+		return
 	hp = maxi(hp - amount, 0)
 	hp_changed.emit(hp, max_hp)
 	if hp == 0:
@@ -99,30 +101,51 @@ func _move(delta: float) -> void:
 func _auto_fire(delta: float) -> void:
 	for wpn in weapons:
 		wpn.cooldown -= delta
-		if wpn.cooldown <= 0.0:
+		# 連射が速すぎて 1 コマに何回も撃つ時は、まとめて 1 回にして威力に上乗せする
+		var shots := 0
+		while wpn.cooldown <= 0.0:
 			wpn.cooldown += 1.0 / wpn.fire_rate
-			_fire(wpn)
+			shots += 1
+		if shots > 0:
+			_fire(wpn, shots)
 
 
-func _fire(wpn: WeaponState) -> void:
+func _fire(wpn: WeaponState, shots: int) -> void:
 	if bullet_container == null:
 		return
 	if bullet_container.get_child_count() >= Config.MAX_BULLETS:
 		return
-	var n := wpn.count
+	# 弾は 1 丁 VOLLEY_CAP 発まで。超えた分は 1 発の威力に上乗せする（弾数 ×2 = 攻撃力 2 倍は崩さない）
+	var n := mini(wpn.count, Config.VOLLEY_CAP)
+	var power := float(wpn.count) / float(n) * float(shots)
+	var dmg := int(round(wpn.damage * power))
+	var size_mult := minf(sqrt(power), Config.MAX_POWER_SIZE)
+	var spread := minf(wpn.spread_deg, Config.MAX_SPREAD_DEG)
+	# 弾が多い時は間隔を詰めて画面の幅に収める
+	var spacing := Config.BULLET_SPACING
+	if n > 1:
+		spacing = minf(spacing, (Config.SCREEN_W - 60.0) / float(n - 1))
 	for i in n:
 		var angle_deg := 0.0
 		var x_off := 0.0
-		if wpn.spread_deg > 0.0 and n > 1:
+		if spread > 0.0 and n > 1:
 			# 扇状: -spread/2 〜 +spread/2 に均等に並べる
-			angle_deg = -wpn.spread_deg * 0.5 + wpn.spread_deg * float(i) / float(n - 1)
+			angle_deg = -spread * 0.5 + spread * float(i) / float(n - 1)
 		else:
 			# 平行: 中心をそろえて横に並べる
-			x_off = (float(i) - float(n - 1) * 0.5) * Config.BULLET_SPACING
+			x_off = (float(i) - float(n - 1) * 0.5) * spacing
 		var bullet := BULLET_SCENE.instantiate()
 		var start := position + Vector2(wpn.offset_x + x_off, Config.MUZZLE_Y)
-		bullet.setup(wpn, start, angle_deg)
+		bullet.setup(wpn, start, angle_deg, dmg, size_mult)
 		bullet_container.add_child(bullet)
+
+
+## 一番遠くまで届く銃の射程（ボスが下がってくる位置を決めるのに使う）
+func max_range() -> float:
+	var r := 0.0
+	for w in weapons:
+		r = maxf(r, w.range_px)
+	return r
 
 
 func _draw() -> void:

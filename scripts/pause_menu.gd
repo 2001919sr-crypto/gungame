@@ -1,5 +1,5 @@
 extends Control
-## 一時停止メニュー。再開 / リトライ / 倍速 / 終了。
+## 一時停止メニュー。再開 / 倍速 / リトライ / タイトルへ。
 ## ゲームを一時停止した状態で出す。倍速は Engine.time_scale を変えるだけ（敵も弾もゲートも一緒に速くなる）。
 ## 倍速は Step 5 のショップでコインによる解放制にする予定。今は誰でも使える。
 
@@ -40,7 +40,7 @@ func _ready() -> void:
 	_speed_button = _make_button("", Color(0.3, 0.6, 1.0), _cycle_speed)
 	box.add_child(_speed_button)
 	box.add_child(_make_button("リトライ", Color(1.0, 0.55, 0.15), func() -> void: retry_pressed.emit()))
-	box.add_child(_make_button("終了", Color(0.55, 0.55, 0.6), func() -> void: quit_pressed.emit()))
+	box.add_child(_make_button("タイトルへ", Color(0.55, 0.55, 0.6), func() -> void: quit_pressed.emit()))
 	_update_speed_label()
 	hide()
 
@@ -51,26 +51,7 @@ func open() -> void:
 
 
 func _make_button(text: String, col: Color, on_press: Callable) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.custom_minimum_size = Vector2(280, 72)
-	b.focus_mode = Control.FOCUS_NONE
-	b.add_theme_font_size_override("font_size", 28)
-	b.add_theme_color_override("font_color", Color.WHITE)
-	b.add_theme_color_override("font_hover_color", Color.WHITE)
-	b.add_theme_color_override("font_pressed_color", Color.WHITE)
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = col
-	normal.border_color = Color(0.12, 0.12, 0.16)
-	normal.set_border_width_all(4)
-	normal.set_corner_radius_all(18)
-	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = col.lightened(0.15)
-	b.add_theme_stylebox_override("normal", normal)
-	b.add_theme_stylebox_override("hover", hover)
-	b.add_theme_stylebox_override("pressed", hover)
-	b.pressed.connect(on_press)
-	return b
+	return UiKit.make_button(text, col, on_press)
 
 
 func _cycle_speed() -> void:
